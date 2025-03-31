@@ -101,9 +101,14 @@ Generally speaking, returned completions are annotated with one of these:
            (s-match "^#\\+begin\\(:\\|_[a-zA-Z0-9]+\\) *\\([A-Za-z0-9_-]+\\)?* *\\(.*\\)?$" line))
           (block-type (pcase (s-chop-prefix "_" type)
                         (":" 'dblock)
-                        ((or "src" "SRC") 'src))))
+                        ((or "src" "SRC") 'src)
+                        ;; begin_{export,example,center,...} etc.
+                        ;; We have no completion for them, for now.
+                        (_ 'special))))
     (cond
      ((or (not line) (s-blank? type)) '())
+     ((eq block-type 'special)
+      '())
      ((and block-type
            (or (s-blank? what)
                (looking-back (format " %s" what) (line-beginning-position))))
