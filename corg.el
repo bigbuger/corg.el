@@ -317,9 +317,11 @@ These completions are annotated as \"native\"."
 
 (defun corg--get-function-source (function)
   "Return FUNCTION source in string form."
-  (-if-let ((buffer . pos) (ignore-error error
-                             (delay-mode-hooks
-                               (find-definition-noselect function nil))))
+  (-if-let ((buffer . pos) (let ((find-file-suppress-same-file-warnings t)
+                                 (vc-suppress-confirm t))
+                             (ignore-error error
+                               (delay-mode-hooks
+                                 (find-definition-noselect function nil)))))
       (save-current-buffer
         (set-buffer buffer)
         (buffer-substring-no-properties
@@ -341,21 +343,23 @@ These completions are annotated as \"native\"."
 
 (defun corg--get-package-commentary (package)
   "Get commentary of given PACKAGE."
-  (when-let ((pkg-file (s-chop-suffix "c" (locate-library package))))
-    (with-temp-buffer
-      (insert-file-contents pkg-file)
-      (goto-char (point-min))
-      (when (search-forward ";;; Commentary:" nil t)
-        (let* ((start (point))
-               (commentary (if (search-forward ";;;" nil t)
-                               (buffer-substring start (match-beginning 0))
-                             "")))
-          (->>
-           commentary
-           s-trim
-           s-lines
-           (--map (s-trim (s-chop-prefix ";;" it)))
-           (s-join "\n")))))))
+  (let ((find-file-suppress-same-file-warnings t)
+        (vc-suppress-confirm t))
+    (when-let ((pkg-file (s-chop-suffix "c" (locate-library package))))
+      (with-temp-buffer
+        (insert-file-contents pkg-file)
+        (goto-char (point-min))
+        (when (search-forward ";;; Commentary:" nil t)
+          (let* ((start (point))
+                 (commentary (if (search-forward ";;;" nil t)
+                                 (buffer-substring start (match-beginning 0))
+                               "")))
+            (->>
+             commentary
+             s-trim
+             s-lines
+             (--map (s-trim (s-chop-prefix ";;" it)))
+             (s-join "\n"))))))))
 
 (defun corg--build-fn-name (what block-type)
   (concat
